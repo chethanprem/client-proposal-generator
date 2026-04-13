@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Proposal Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&family=Source+Serif+4:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#4a0e1f;--navy-mid:#6b1a2e;--navy-light:#8c2640;
+  --gold:#c9a84c;--gold-light:#e0c070;--gold-pale:#fdf6e3;
+  --cream:#fdf9f5;--white:#ffffff;
+  --text:#2a0a12;--text-mid:#5a2a35;--text-muted:#9a7a82;
+  --border:#e8d5d9;--border-light:#f3e8eb;
+  --shadow:0 2px 12px rgba(74,14,31,0.08);
+  --shadow-lg:0 8px 40px rgba(74,14,31,0.14);
+  --radius:6px;
+}
+body{font-family:'Source Sans 3',sans-serif;background:var(--cream);color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:240px;background:var(--navy);color:#fff;padding:28px 0;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;z-index:100}
+.sidebar-logo{padding:0 24px 24px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:12px}
+.sidebar-logo .brand{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--gold-light);letter-spacing:.3px}
+.sidebar-logo .sub{font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px;letter-spacing:.05em;text-transform:uppercase}
+.nav-section{font-size:9.5px;font-weight:600;letter-spacing:.12em;color:rgba(255,255,255,0.35);text-transform:uppercase;padding:16px 24px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 24px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:13.5px;font-weight:500;transition:all .15s;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:#fff}
+.nav-item.active{background:rgba(184,146,42,0.12);color:var(--gold-light);border-left-color:var(--gold)}
+.nav-item .icon{width:18px;text-align:center;font-size:14px}
+.sidebar-footer{margin-top:auto;padding:20px 24px;border-top:1px solid rgba(255,255,255,0.1)}
+.sidebar-footer .hint{font-size:11.5px;color:rgba(255,255,255,0.35);line-height:1.5}
+
+/* MAIN */
+.main{margin-left:240px;flex:1;padding:36px 40px;max-width:1160px}
+.page{display:none}.page.active{display:block}
+.page-header{margin-bottom:28px}
+.page-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);letter-spacing:-.3px}
+.page-sub{font-size:13.5px;color:var(--text-muted);margin-top:4px}
+.divider{height:1px;background:var(--border);margin:28px 0}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:'Source Sans 3',sans-serif;letter-spacing:.01em}
+.btn-primary{background:var(--navy);color:#fff}.btn-primary:hover{background:var(--navy-mid)}
+.btn-gold{background:var(--gold);color:#fff}.btn-gold:hover{background:var(--gold-light)}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text-mid)}.btn-outline:hover{border-color:var(--navy);color:var(--navy)}
+.btn-danger{background:#c0392b;color:#fff}.btn-danger:hover{background:#a93226}
+.btn-sm{padding:6px 13px;font-size:12px}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap}
+
+/* CARDS & PANELS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.panel-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border-light)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.form-full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:5px}
+label{font-size:12px;font-weight:600;color:var(--text-mid);letter-spacing:.03em;text-transform:uppercase}
+input,select,textarea{border:1.5px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:13.5px;font-family:'Source Sans 3',sans-serif;color:var(--text);background:var(--white);transition:border .15s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--navy)}
+textarea{resize:vertical;min-height:80px;line-height:1.55}
+select{cursor:pointer}
+.hint-text{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+
+/* SECTION BUILDER */
+.sections-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.section-item{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.section-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;background:var(--cream);border-bottom:1px solid var(--border-light)}
+.section-header:hover{background:#f3f0ea}
+.section-drag{color:var(--text-muted);cursor:grab;font-size:14px}
+.section-name{font-weight:600;font-size:13.5px;flex:1}
+.section-toggle{font-size:12px;color:var(--text-muted);margin-left:auto}
+.section-body{padding:16px;display:none}
+.section-body.open{display:block}
+.section-enabled{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.toggle{position:relative;display:inline-block;width:38px;height:20px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:20px;transition:.2s;cursor:pointer}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked + .toggle-slider{background:var(--navy)}
+.toggle input:checked + .toggle-slider:before{transform:translateX(18px)}
+
+/* PRICING TABLE */
+.pricing-table{width:100%;border-collapse:collapse;margin-top:10px}
+.pricing-table th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--text-muted);text-transform:uppercase;padding:8px 10px;border-bottom:2px solid var(--border)}
+.pricing-table td{padding:9px 10px;border-bottom:1px solid var(--border-light);font-size:13.5px;vertical-align:middle}
+.pricing-table tr:last-child td{border-bottom:none}
+.pricing-table input{border:1.5px solid transparent;background:transparent;padding:4px 6px;font-size:13px;width:100%}
+.pricing-table input:focus{background:var(--white);border-color:var(--border)}
+.total-row td{font-weight:700;background:var(--gold-pale);font-size:14px}
+.add-row-btn{font-size:12px;color:var(--navy);cursor:pointer;text-decoration:underline;margin-top:8px;display:inline-block;font-weight:600}
+.del-row{cursor:pointer;color:#c0392b;font-size:16px;line-height:1;padding:2px 6px}
+
+/* TIMELINE */
+.timeline-item{display:grid;grid-template-columns:1fr 1fr 80px;gap:10px;align-items:center;margin-bottom:8px}
+
+/* PREVIEW PANEL */
+.preview-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-lg)}
+.preview-toolbar{background:var(--navy);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.preview-toolbar .label{color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.preview-inner{padding:0;overflow-y:auto;max-height:80vh}
+
+/* PROPOSAL PREVIEW STYLES */
+.proposal{font-family:'Source Serif 4',serif;max-width:800px;margin:0 auto;background:#fff}
+.prop-cover{background:var(--navy);color:#fff;padding:80px 70px 60px;min-height:320px;position:relative;overflow:hidden}
+.prop-cover::before{content:'';position:absolute;top:0;right:0;width:300px;height:300px;background:var(--gold);opacity:.07;border-radius:50%;transform:translate(80px,-80px)}
+.prop-cover::after{content:'';position:absolute;bottom:0;left:0;width:200px;height:200px;background:var(--gold);opacity:.05;border-radius:50%;transform:translate(-60px,60px)}
+.prop-cover .tag{font-family:'Source Sans 3',sans-serif;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-light);margin-bottom:20px}
+.prop-cover h1{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;line-height:1.2;margin-bottom:16px;position:relative;z-index:1}
+.prop-cover .client-to{font-size:16px;color:rgba(255,255,255,0.65);margin-bottom:8px;font-style:italic}
+.prop-cover .client-name{font-size:20px;font-weight:600;color:var(--gold-light)}
+.prop-cover .meta{margin-top:36px;display:flex;gap:40px}
+.prop-cover .meta-item .mlabel{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.4);margin-bottom:3px;font-family:'Source Sans 3',sans-serif}
+.prop-cover .meta-item .mval{font-size:13.5px;color:rgba(255,255,255,0.85);font-family:'Source Sans 3',sans-serif}
+.prop-gold-bar{height:5px;background:linear-gradient(90deg,var(--gold),var(--gold-light),var(--gold))}
+.prop-section{padding:40px 70px;border-bottom:1px solid var(--border-light)}
+.prop-section:last-child{border-bottom:none}
+.prop-section-tag{font-family:'Source Sans 3',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.prop-section h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--navy);margin-bottom:16px}
+.prop-section p{font-size:14.5px;line-height:1.75;color:#3a3a5a;font-weight:300}
+.prop-section p + p{margin-top:12px}
+
+/* Why Choose Us */
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+.why-item{padding:16px;background:var(--cream);border-left:3px solid var(--gold);border-radius:0 4px 4px 0}
+.why-item .wi-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.why-item .wi-desc{font-size:13px;color:var(--text-muted);line-height:1.55}
+
+/* Scope */
+.scope-item{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.scope-num{width:28px;height:28px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'Source Sans 3',sans-serif;flex-shrink:0;margin-top:2px}
+.scope-text .st{font-size:14.5px;font-weight:600;color:var(--navy);margin-bottom:3px;font-family:'Source Sans 3',sans-serif}
+.scope-text .sd{font-size:13.5px;color:var(--text-muted);line-height:1.55}
+
+/* Timeline */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:9px;top:8px;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-dot{position:absolute;left:-24px;top:4px;width:12px;height:12px;background:var(--gold);border-radius:50%;border:2px solid var(--white);box-shadow:0 0 0 2px var(--gold)}
+.tl-phase{font-family:'Source Sans 3',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:2px}
+.tl-title{font-size:14.5px;font-weight:600;color:var(--navy)}
+.tl-dur{font-size:12.5px;color:var(--text-muted);margin-top:2px}
+
+/* Pricing */
+.price-table{width:100%;border-collapse:collapse;margin-top:8px}
+.price-table th{text-align:left;font-family:'Source Sans 3',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:10px 14px;background:var(--navy);color:rgba(255,255,255,0.75);border:none}
+.price-table td{padding:11px 14px;border-bottom:1px solid var(--border-light);font-size:14px;color:var(--text)}
+.price-table tr:last-child td{border-bottom:none}
+.price-total{background:var(--gold-pale);border-top:2px solid var(--gold)!important}
+.price-total td{font-weight:700;font-size:15px;color:var(--navy);font-family:'Playfair Display',serif}
+
+/* Services */
+.services-list{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+.service-item{padding:16px 20px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:flex-start;gap:14px}
+.service-icon{width:36px;height:36px;background:var(--navy);color:var(--gold-light);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.service-body .sb-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px}
+.service-body .sb-desc{font-size:13.5px;color:var(--text-muted);line-height:1.55}
+
+/* Terms */
+.terms-list{list-style:none;padding:0}
+.terms-list li{display:flex;gap:12px;margin-bottom:12px;font-size:14px;line-height:1.65;color:#3a3a5a;align-items:flex-start}
+.terms-list li::before{content:'§';color:var(--gold);font-size:14px;flex-shrink:0;margin-top:1px;font-family:'Playfair Display',serif}
+
+/* Signature */
+.sig-area{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:20px}
+.sig-box{padding-top:40px;border-top:2px solid var(--navy)}
+.sig-label{font-size:12px;font-family:'Source Sans 3',sans-serif;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted)}
+.sig-name{font-size:15px;font-weight:600;color:var(--navy);margin-top:6px;font-family:'Playfair Display',serif}
+
+/* CUSTOM SECTION */
+.custom-section-wrap{padding:40px 70px;border-bottom:1px solid var(--border-light)}
+.custom-section-wrap h2{font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:14px}
+.custom-section-wrap p{font-size:14.5px;line-height:1.75;color:#3a3a5a;font-weight:300}
+
+/* STATUS BADGE */
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.04em}
+.badge-draft{background:#eef2ff;color:#4454a4}
+.badge-ready{background:#edf7f2;color:#1a6b4a}
+.badge-sent{background:#fef9ee;color:#b45309}
+
+/* PROPOSALS LIST */
+.proposals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.proposal-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s}
+.proposal-card:hover{border-color:var(--navy);box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.pc-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.pc-client{font-size:13px;color:var(--text-muted);margin-bottom:12px}
+.pc-meta{display:flex;justify-content:space-between;align-items:center}
+.pc-amount{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--gold)}
+.pc-date{font-size:11.5px;color:var(--text-muted)}
+.pc-actions{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-light)}
+
+/* COPY LINK TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--navy);color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);display:none;z-index:999;align-items:center;gap:8px}
+.toast.show{display:flex;animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state .ei{font-size:48px;margin-bottom:16px;opacity:.4}
+.empty-state p{font-size:15px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--cream)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* PRINT */
+@media print{.sidebar,.preview-toolbar,.btn-group{display:none!important}.main{margin-left:0}.proposal{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">ProposalCraft</div>
+    <div class="sub">Professional Proposals</div>
+  </div>
+  <div class="nav-section">Menu</div>
+  <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">🗂</span> All Proposals</div>
+  <div class="nav-item" onclick="showPage('builder')"><span class="icon">✍️</span> New Proposal</div>
+  <div class="nav-item" onclick="showPage('preview')"><span class="icon">👁</span> Preview</div>
+  <div class="nav-section">Settings</div>
+  <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span> Company Profile</div>
+  <div class="sidebar-footer">
+    <div class="hint">All data saved in browser.<br>No account needed.</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ========== DASHBOARD ========== -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div>
+        <div class="page-title">All Proposals</div>
+        <div class="page-sub">Manage and track your client proposals</div>
+      </div>
+      <button class="btn btn-gold" onclick="newProposal()">✦ New Proposal</button>
+    </div>
+    <div class="proposals-grid" id="proposalsList">
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="ei">📄</div>
+        <p>No proposals yet.<br>Click <strong>New Proposal</strong> to get started.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== BUILDER ========== -->
+  <div class="page" id="page-builder">
+    <div class="page-header">
+      <div>
+        <div class="page-title" id="builderTitle">New Proposal</div>
+        <div class="page-sub">Fill in the details and build your sections</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="showPage('dashboard')">← Back</button>
+        <button class="btn btn-outline" onclick="previewProposal()">👁 Preview</button>
+        <button class="btn btn-primary" onclick="saveProposal()">💾 Save</button>
+      </div>
+    </div>
+
+    <!-- PROPOSAL INFO -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="panel-title">Proposal Details</div>
+      <div class="form-grid">
+        <div class="field"><label>Proposal Title</label><input id="propTitle" placeholder="e.g. Website Redesign Proposal" /></div>
+        <div class="field"><label>Proposal Number</label><input id="propNumber" placeholder="e.g. PROP-2024-001" /></div>
+        <div class="field"><label>Client Name / Company</label><input id="clientName" placeholder="e.g. Acme Corp" /></div>
+        <div class="field"><label>Client Contact</label><input id="clientContact" placeholder="e.g. John Smith, CEO" /></div>
+        <div class="field"><label>Proposal Date</label><input id="propDate" type="date" /></div>
+        <div class="field"><label>Valid Until</label><input id="propValid" type="date" /></div>
+        <div class="field form-full"><label>Tagline / One-liner</label><input id="propTagline" placeholder="e.g. Transforming your digital presence with precision and clarity" /></div>
+      </div>
+    </div>
+
+    <!-- SECTIONS -->
+    <div class="card">
+      <div class="panel-title">Proposal Sections</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Toggle sections on/off and fill in the content. Drag to reorder (coming soon).</p>
+      <div class="sections-list" id="sectionsList"></div>
+      <button class="btn btn-outline btn-sm" onclick="addCustomSection()">＋ Add Custom Section</button>
+    </div>
+  </div>
+
+  <!-- ========== PREVIEW ========== -->
+  <div class="page" id="page-preview">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Proposal Preview</div>
+        <div class="page-sub">Review before exporting</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="showPage('builder')">← Edit</button>
+        <button class="btn btn-outline" onclick="copyProposalLink()">🔗 Copy Link</button>
+        <button class="btn btn-gold" onclick="exportPDF()">⬇ Download PDF</button>
+      </div>
+    </div>
+    <div class="preview-wrap">
+      <div class="preview-toolbar">
+        <span class="label">Live Preview</span>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.2)" onclick="copyProposalLink()">🔗 Copy Link</button>
+          <button class="btn btn-gold btn-sm" onclick="exportPDF()">⬇ PDF</button>
+        </div>
+      </div>
+      <div class="preview-inner" id="previewInner"></div>
+    </div>
+  </div>
+
+  <!-- ========== SETTINGS ========== -->
+  <div class="page" id="page-settings">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Company Profile</div>
+        <div class="page-sub">Your details appear on every proposal</div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Save Profile</button>
+    </div>
+    <div class="card">
+      <div class="panel-title">Company Information</div>
+      <div class="form-grid">
+        <div class="field"><label>Company Name</label><input id="compName" placeholder="Your Company Name" /></div>
+        <div class="field"><label>Your Name / Designation</label><input id="compPerson" placeholder="e.g. Rahul Sharma, Founder" /></div>
+        <div class="field"><label>Email</label><input id="compEmail" placeholder="hello@company.com" /></div>
+        <div class="field"><label>Phone</label><input id="compPhone" placeholder="+91 98XXX XXXXX" /></div>
+        <div class="field"><label>Website</label><input id="compWebsite" placeholder="www.company.com" /></div>
+        <div class="field"><label>GST Number (optional)</label><input id="compGST" placeholder="22AAAAA0000A1Z5" /></div>
+        <div class="field form-full"><label>Address</label><textarea id="compAddress" rows="2" placeholder="123, Business Park, Bengaluru, Karnataka 560001"></textarea></div>
+        <div class="field form-full"><label>Default Payment Terms</label><textarea id="compTerms" rows="3" placeholder="50% advance before project commencement. Remaining 50% on project delivery. Payments due within 7 days of invoice."></textarea></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ <span id="toastMsg">Saved!</span></div>
+
+<script>
+// ============================================================
+// DATA STORE
+// ============================================================
+let proposals = JSON.parse(localStorage.getItem('pc_proposals') || '[]');
+let company = JSON.parse(localStorage.getItem('pc_company') || '{}');
+let currentProposal = null;
+let editingId = null;
+
+const DEFAULT_SECTIONS = [
+  {id:'about', name:'About Us', enabled:true, fields:{content:''}},
+  {id:'services', name:'Services Offered', enabled:true, fields:{items:[{icon:'💼',title:'',desc:''}]}},
+  {id:'scope', name:'Scope of Work', enabled:true, fields:{items:[{title:'',desc:''}]}},
+  {id:'timeline', name:'Project Timeline', enabled:true, fields:{items:[{phase:'',milestone:'',duration:''}]}},
+  {id:'pricing', name:'Pricing', enabled:true, fields:{currency:'₹',rows:[{desc:'',qty:1,rate:'',total:''}]}},
+  {id:'whyus', name:'Why Choose Us', enabled:true, fields:{items:[{title:'',desc:''},]}},
+  {id:'terms', name:'Terms & Conditions', enabled:true, fields:{content:''}},
+  {id:'signature', name:'Signature Block', enabled:true, fields:{}},
+];
+
+// ============================================================
+// NAV
+// ============================================================
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el=>{if(el.textContent.toLowerCase().includes(p.substring(0,4)))el.classList.add('active')});
+  if(p==='preview') renderPreview();
+  if(p==='dashboard') renderDashboard();
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function loadSettings(){
+  if(company.name) document.getElementById('compName').value=company.name||'';
+  document.getElementById('compPerson').value=company.person||'';
+  document.getElementById('compEmail').value=company.email||'';
+  document.getElementById('compPhone').value=company.phone||'';
+  document.getElementById('compWebsite').value=company.website||'';
+  document.getElementById('compGST').value=company.gst||'';
+  document.getElementById('compAddress').value=company.address||'';
+  document.getElementById('compTerms').value=company.terms||'50% advance before project commencement. Remaining 50% on delivery. Invoices due within 7 days.';
+}
+function saveSettings(){
+  company={
+    name:document.getElementById('compName').value,
+    person:document.getElementById('compPerson').value,
+    email:document.getElementById('compEmail').value,
+    phone:document.getElementById('compPhone').value,
+    website:document.getElementById('compWebsite').value,
+    gst:document.getElementById('compGST').value,
+    address:document.getElementById('compAddress').value,
+    terms:document.getElementById('compTerms').value,
+  };
+  localStorage.setItem('pc_company',JSON.stringify(company));
+  showToast('Company profile saved!');
+}
+
+// ============================================================
+// SECTIONS BUILDER
+// ============================================================
+function buildSectionsUI(sections){
+  const list = document.getElementById('sectionsList');
+  list.innerHTML='';
+  sections.forEach((sec,i)=>{
+    const wrap = document.createElement('div');
+    wrap.className='section-item';
+    wrap.innerHTML=`
+      <div class="section-header" onclick="toggleSection('sec-body-${i}')">
+        <span class="section-drag">⠿</span>
+        <span class="section-name">${sec.name}</span>
+        <span class="section-toggle" id="sec-arr-${i}">▼</span>
+      </div>
+      <div class="section-body" id="sec-body-${i}">
+        <div class="section-enabled">
+          <label class="toggle"><input type="checkbox" id="sec-en-${i}" ${sec.enabled?'checked':''}/><span class="toggle-slider"></span></label>
+          <span style="font-size:13px;font-weight:600">Include this section</span>
+        </div>
+        ${getSectionFields(sec,i)}
+      </div>`;
+    list.appendChild(wrap);
+  });
+}
+function toggleSection(id){
+  const body=document.getElementById(id);
+  const idx=id.split('-')[2];
+  const arr=document.getElementById('sec-arr-'+idx);
+  body.classList.toggle('open');
+  arr.textContent=body.classList.contains('open')?'▲':'▼';
+}
+function getSectionFields(sec,i){
+  if(sec.id==='about') return `<div class="field"><label>About Your Company</label><textarea id="sf-about" rows="4" placeholder="Write a brief introduction about your company, expertise, and values...">${sec.fields.content||''}</textarea></div>`;
+  if(sec.id==='services') return `<div id="sf-services-wrap">${(sec.fields.items||[]).map((item,j)=>`<div class="form-grid" style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border-light)" id="svc-${j}"><div class="field"><label>Icon (emoji)</label><input id="sf-svc-icon-${j}" value="${item.icon||'💼'}" style="width:70px"/></div><div class="field"><label>Service Title</label><input id="sf-svc-title-${j}" value="${item.title||''}" placeholder="e.g. Web Development"/></div><div class="field form-full"><label>Description</label><input id="sf-svc-desc-${j}" value="${item.desc||''}" placeholder="Short description of the service"/></div></div>`).join('')}</div><button class="btn btn-outline btn-sm" onclick="addServiceRow()">＋ Add Service</button>`;
+  if(sec.id==='scope') return `<div id="sf-scope-wrap">${(sec.fields.items||[]).map((item,j)=>`<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start" id="scope-${j}"><div style="flex:1"><div class="form-grid"><div class="field"><label>Deliverable Title</label><input id="sf-scope-title-${j}" value="${item.title||''}" placeholder="e.g. UI/UX Design"/></div><div class="field"><label>Details</label><input id="sf-scope-desc-${j}" value="${item.desc||''}" placeholder="What's included"/></div></div></div><span class="del-row" onclick="removeRow('scope',${j})" title="Remove">×</span></div>`).join('')}</div><button class="btn btn-outline btn-sm" onclick="addScopeRow()">＋ Add Item</button>`;
+  if(sec.id==='timeline') return `<div id="sf-timeline-wrap">${(sec.fields.items||[]).map((item,j)=>`<div class="timeline-item" id="tl-${j}"><input id="sf-tl-phase-${j}" value="${item.phase||''}" placeholder="Phase name (e.g. Discovery)"/><input id="sf-tl-milestone-${j}" value="${item.milestone||''}" placeholder="Milestone / Deliverable"/><input id="sf-tl-dur-${j}" value="${item.duration||''}" placeholder="e.g. 1 wk"/><span class="del-row" onclick="removeRow('tl',${j})">×</span></div>`).join('')}</div><button class="btn btn-outline btn-sm" onclick="addTimelineRow()">＋ Add Phase</button>`;
+  if(sec.id==='pricing'){
+    const cur=sec.fields.currency||'₹';
+    return `<div style="display:flex;gap:12px;align-items:center;margin-bottom:12px"><div class="field"><label>Currency Symbol</label><input id="sf-currency" value="${cur}" style="width:70px"/></div></div><table class="pricing-table"><thead><tr><th style="width:45%">Description</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead><tbody id="sf-price-rows">${(sec.fields.rows||[]).map((r,j)=>`<tr id="pr-${j}"><td><input id="sf-pr-desc-${j}" value="${r.desc||''}" placeholder="Item / Service"/></td><td><input id="sf-pr-qty-${j}" value="${r.qty||1}" type="number" min="1" style="width:60px" oninput="calcRow(${j})"/></td><td><input id="sf-pr-rate-${j}" value="${r.rate||''}" type="number" placeholder="0" oninput="calcRow(${j})"/></td><td class="text-mono" id="sf-pr-total-${j}">${r.total||'0'}</td><td><span class="del-row" onclick="removeRow('pr',${j})">×</span></td></tr>`).join('')}</tbody><tfoot><tr class="total-row"><td colspan="3" style="font-size:13.5px;padding:10px 14px;font-weight:700">TOTAL</td><td colspan="2" class="text-mono" id="sf-grand-total" style="padding:10px 14px;font-size:15px;font-weight:700">${sec.fields.grandTotal||'0'}</td></tr></tfoot></table><span class="add-row-btn" onclick="addPriceRow()">＋ Add Line Item</span>`;
+  }
+  if(sec.id==='whyus') return `<div id="sf-whyus-wrap">${(sec.fields.items||[]).map((item,j)=>`<div class="form-grid" style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border-light)" id="why-${j}"><div class="field"><label>Highlight Title</label><input id="sf-why-title-${j}" value="${item.title||''}" placeholder="e.g. 5+ Years Experience"/></div><div class="field"><label>Description</label><input id="sf-why-desc-${j}" value="${item.desc||''}" placeholder="Brief explanation"/></div></div>`).join('')}</div><button class="btn btn-outline btn-sm" onclick="addWhyRow()">＋ Add Point</button>`;
+  if(sec.id==='terms') return `<div class="field"><label>Terms & Conditions</label><textarea id="sf-terms" rows="5" placeholder="Enter your terms and conditions...">${sec.fields.content||company.terms||''}</textarea></div>`;
+  if(sec.id==='signature') return `<p style="font-size:13px;color:var(--text-muted)">Signature block will auto-populate from your Company Profile.</p>`;
+  // custom
+  return `<div class="form-grid"><div class="field"><label>Section Title</label><input id="sf-custom-title-${i}" value="${sec.fields.title||sec.name}" /></div><div class="field form-full"><label>Content</label><textarea id="sf-custom-content-${i}" rows="4" placeholder="Section content...">${sec.fields.content||''}</textarea></div></div>`;
+}
+
+// Row helpers
+function addServiceRow(){
+  const items=collectSvcItems();
+  items.push({icon:'💼',title:'',desc:''});
+  updateSection('services','items',items);
+  buildSectionsUI(currentProposal.sections);
+  openSection('services');
+}
+function addScopeRow(){
+  const items=collectScopeItems();
+  items.push({title:'',desc:''});
+  updateSection('scope','items',items);
+  buildSectionsUI(currentProposal.sections);
+  openSection('scope');
+}
+function addTimelineRow(){
+  const items=collectTimelineItems();
+  items.push({phase:'',milestone:'',duration:''});
+  updateSection('timeline','items',items);
+  buildSectionsUI(currentProposal.sections);
+  openSection('timeline');
+}
+function addPriceRow(){
+  const rows=collectPriceRows();
+  rows.push({desc:'',qty:1,rate:'',total:'0'});
+  updateSection('pricing','rows',rows);
+  buildSectionsUI(currentProposal.sections);
+  openSection('pricing');
+}
+function addWhyRow(){
+  const items=collectWhyItems();
+  items.push({title:'',desc:''});
+  updateSection('whyus','items',items);
+  buildSectionsUI(currentProposal.sections);
+  openSection('whyus');
+}
+function removeRow(type,j){
+  if(type==='pr'){const rows=collectPriceRows();rows.splice(j,1);updateSection('pricing','rows',rows);}
+  if(type==='scope'){const items=collectScopeItems();items.splice(j,1);updateSection('scope','items',items);}
+  if(type==='tl'){const items=collectTimelineItems();items.splice(j,1);updateSection('timeline','items',items);}
+  buildSectionsUI(currentProposal.sections);
+  openSection(type==='pr'?'pricing':type==='tl'?'timeline':'scope');
+}
+function updateSection(id,key,val){const s=currentProposal.sections.find(x=>x.id===id);if(s)s.fields[key]=val;}
+function openSection(id){
+  const idx=currentProposal.sections.findIndex(x=>x.id===id);
+  if(idx>=0){const b=document.getElementById('sec-body-'+idx);if(b&&!b.classList.contains('open')){b.classList.add('open');const a=document.getElementById('sec-arr-'+idx);if(a)a.textContent='▲';}}
+}
+
+function calcRow(j){
+  const qty=parseFloat(document.getElementById('sf-pr-qty-'+j)?.value||1)||1;
+  const rate=parseFloat(document.getElementById('sf-pr-rate-'+j)?.value||0)||0;
+  const total=(qty*rate).toFixed(2);
+  const tel=document.getElementById('sf-pr-total-'+j);
+  if(tel)tel.textContent=total;
+  // grand total
+  let grand=0;
+  document.querySelectorAll('[id^="sf-pr-total-"]').forEach(el=>{grand+=parseFloat(el.textContent||0)});
+  const gt=document.getElementById('sf-grand-total');
+  if(gt)gt.textContent=grand.toFixed(2);
+}
+
+// ============================================================
+// COLLECT FROM DOM
+// ============================================================
+function collectAll(){
+  const sections=currentProposal.sections;
+  sections.forEach((sec,i)=>{
+    const en=document.getElementById('sec-en-'+i);
+    if(en) sec.enabled=en.checked;
+    if(sec.id==='about'){const el=document.getElementById('sf-about');if(el)sec.fields.content=el.value;}
+    if(sec.id==='services'){sec.fields.items=collectSvcItems();}
+    if(sec.id==='scope'){sec.fields.items=collectScopeItems();}
+    if(sec.id==='timeline'){sec.fields.items=collectTimelineItems();}
+    if(sec.id==='pricing'){
+      const cur=document.getElementById('sf-currency');
+      if(cur)sec.fields.currency=cur.value;
+      sec.fields.rows=collectPriceRows();
+      const gt=document.getElementById('sf-grand-total');
+      if(gt)sec.fields.grandTotal=gt.textContent;
+    }
+    if(sec.id==='whyus'){sec.fields.items=collectWhyItems();}
+    if(sec.id==='terms'){const el=document.getElementById('sf-terms');if(el)sec.fields.content=el.value;}
+    if(sec.id==='custom'){
+      const t=document.getElementById('sf-custom-title-'+i);const c=document.getElementById('sf-custom-content-'+i);
+      if(t)sec.fields.title=t.value; if(c)sec.fields.content=c.value;
+    }
+  });
+  currentProposal.title=document.getElementById('propTitle').value||'Untitled Proposal';
+  currentProposal.number=document.getElementById('propNumber').value;
+  currentProposal.clientName=document.getElementById('clientName').value;
+  currentProposal.clientContact=document.getElementById('clientContact').value;
+  currentProposal.date=document.getElementById('propDate').value;
+  currentProposal.validUntil=document.getElementById('propValid').value;
+  currentProposal.tagline=document.getElementById('propTagline').value;
+}
+function collectSvcItems(){
+  const items=[];
+  document.querySelectorAll('[id^="sf-svc-title-"]').forEach(el=>{
+    const j=el.id.split('-').pop();
+    items.push({icon:document.getElementById('sf-svc-icon-'+j)?.value||'💼',title:el.value,desc:document.getElementById('sf-svc-desc-'+j)?.value||''});
+  });
+  return items;
+}
+function collectScopeItems(){
+  const items=[];
+  document.querySelectorAll('[id^="sf-scope-title-"]').forEach(el=>{
+    const j=el.id.split('-').pop();
+    items.push({title:el.value,desc:document.getElementById('sf-scope-desc-'+j)?.value||''});
+  });
+  return items;
+}
+function collectTimelineItems(){
+  const items=[];
+  document.querySelectorAll('[id^="sf-tl-phase-"]').forEach(el=>{
+    const j=el.id.split('-').pop();
+    items.push({phase:el.value,milestone:document.getElementById('sf-tl-milestone-'+j)?.value||'',duration:document.getElementById('sf-tl-dur-'+j)?.value||''});
+  });
+  return items;
+}
+function collectPriceRows(){
+  const rows=[];
+  document.querySelectorAll('[id^="sf-pr-desc-"]').forEach(el=>{
+    const j=el.id.split('-').pop();
+    const qty=parseFloat(document.getElementById('sf-pr-qty-'+j)?.value||1)||1;
+    const rate=document.getElementById('sf-pr-rate-'+j)?.value||'';
+    rows.push({desc:el.value,qty,rate,total:(qty*(parseFloat(rate)||0)).toFixed(2)});
+  });
+  return rows;
+}
+function collectWhyItems(){
+  const items=[];
+  document.querySelectorAll('[id^="sf-why-title-"]').forEach(el=>{
+    const j=el.id.split('-').pop();
+    items.push({title:el.value,desc:document.getElementById('sf-why-desc-'+j)?.value||''});
+  });
+  return items;
+}
+
+// ============================================================
+// PROPOSAL CRUD
+// ============================================================
+function newProposal(){
+  editingId=null;
+  const today=new Date().toISOString().split('T')[0];
+  const validDate=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
+  currentProposal={
+    id:Date.now(),
+    title:'New Proposal',
+    number:'PROP-'+(proposals.length+1).toString().padStart(3,'0'),
+    clientName:'',clientContact:'',date:today,validUntil:validDate,tagline:'',
+    sections:JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
+    status:'draft',createdAt:new Date().toLocaleDateString('en-IN')
+  };
+  // pre-fill terms from settings
+  const termSec=currentProposal.sections.find(s=>s.id==='terms');
+  if(termSec && company.terms) termSec.fields.content=company.terms;
+  loadBuilder();
+  showPage('builder');
+}
+function loadBuilder(){
+  document.getElementById('propTitle').value=currentProposal.title||'';
+  document.getElementById('propNumber').value=currentProposal.number||'';
+  document.getElementById('clientName').value=currentProposal.clientName||'';
+  document.getElementById('clientContact').value=currentProposal.clientContact||'';
+  document.getElementById('propDate').value=currentProposal.date||'';
+  document.getElementById('propValid').value=currentProposal.validUntil||'';
+  document.getElementById('propTagline').value=currentProposal.tagline||'';
+  document.getElementById('builderTitle').textContent=currentProposal.title||'New Proposal';
+  buildSectionsUI(currentProposal.sections);
+}
+function saveProposal(){
+  collectAll();
+  currentProposal.status='ready';
+  if(editingId!==null){
+    const idx=proposals.findIndex(p=>p.id===editingId);
+    if(idx>=0) proposals[idx]=currentProposal;
+  } else {
+    proposals.push(currentProposal);
+  }
+  localStorage.setItem('pc_proposals',JSON.stringify(proposals));
+  showToast('Proposal saved!');
+  document.getElementById('builderTitle').textContent=currentProposal.title;
+}
+function editProposal(id){
+  editingId=id;
+  currentProposal=JSON.parse(JSON.stringify(proposals.find(p=>p.id===id)));
+  loadBuilder();
+  showPage('builder');
+}
+function deleteProposal(id){
+  if(!confirm('Delete this proposal?')) return;
+  proposals=proposals.filter(p=>p.id!==id);
+  localStorage.setItem('pc_proposals',JSON.stringify(proposals));
+  renderDashboard();
+  showToast('Proposal deleted.');
+}
+function duplicateProposal(id){
+  const orig=proposals.find(p=>p.id===id);
+  if(!orig) return;
+  const copy=JSON.parse(JSON.stringify(orig));
+  copy.id=Date.now();
+  copy.title=orig.title+' (Copy)';
+  copy.number='PROP-'+(proposals.length+1).toString().padStart(3,'0');
+  copy.status='draft';
+  proposals.push(copy);
+  localStorage.setItem('pc_proposals',JSON.stringify(proposals));
+  renderDashboard();
+  showToast('Proposal duplicated!');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(){
+  const list=document.getElementById('proposalsList');
+  if(!proposals.length){
+    list.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="ei">📄</div><p>No proposals yet.<br>Click <strong>New Proposal</strong> to get started.</p></div>';
+    return;
+  }
+  list.innerHTML=proposals.slice().reverse().map(p=>{
+    const amt=getProposalTotal(p);
+    return `<div class="proposal-card">
+      <div class="pc-title">${p.title||'Untitled'}</div>
+      <div class="pc-client">${p.clientName||'No client'} ${p.number?'· '+p.number:''}</div>
+      <div class="pc-meta">
+        <div class="pc-amount">${amt}</div>
+        <span class="status-badge badge-${p.status||'draft'}">${(p.status||'draft').toUpperCase()}</span>
+      </div>
+      <div class="pc-date">Created ${p.createdAt||''} · Valid until ${formatDate(p.validUntil)}</div>
+      <div class="pc-actions">
+        <button class="btn btn-outline btn-sm" onclick="editProposal(${p.id})">✏ Edit</button>
+        <button class="btn btn-outline btn-sm" onclick="previewById(${p.id})">👁 Preview</button>
+        <button class="btn btn-outline btn-sm" onclick="duplicateProposal(${p.id})">⎘ Copy</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProposal(${p.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function getProposalTotal(p){
+  const ps=p.sections?.find(s=>s.id==='pricing');
+  if(!ps||!ps.enabled) return '—';
+  const cur=ps.fields.currency||'₹';
+  return cur+(ps.fields.grandTotal||'0');
+}
+function formatDate(d){if(!d)return '—';const parts=d.split('-');return parts.length===3?`${parts[2]}/${parts[1]}/${parts[0]}`:d;}
+
+// ============================================================
+// PREVIEW
+// ============================================================
+function previewProposal(){
+  collectAll();
+  showPage('preview');
+}
+function previewById(id){
+  currentProposal=JSON.parse(JSON.stringify(proposals.find(p=>p.id===id)));
+  showPage('preview');
+}
+function renderPreview(){
+  if(!currentProposal){document.getElementById('previewInner').innerHTML='<div class="empty-state"><p>No proposal loaded. Create one first.</p></div>';return;}
+  const p=currentProposal;
+  const co=company;
+  let html=`<div class="proposal" id="proposalDoc">`;
+
+  // COVER
+  html+=`<div class="prop-cover">
+    <div class="tag">Proposal · ${p.number||''}</div>
+    <h1>${p.title||'Business Proposal'}</h1>
+    ${p.tagline?`<div style="font-size:15px;color:rgba(255,255,255,0.55);margin-top:-6px;margin-bottom:16px;font-style:italic;font-family:'Source Serif 4',serif">${p.tagline}</div>`:''}
+    <div class="client-to">Prepared for</div>
+    <div class="client-name">${p.clientName||'Client Name'}</div>
+    ${p.clientContact?`<div style="font-size:14px;color:rgba(255,255,255,0.5);margin-top:4px">${p.clientContact}</div>`:''}
+    <div class="meta">
+      <div class="meta-item"><div class="mlabel">Date</div><div class="mval">${formatDate(p.date)}</div></div>
+      <div class="meta-item"><div class="mlabel">Valid Until</div><div class="mval">${formatDate(p.validUntil)}</div></div>
+      ${co.name?`<div class="meta-item"><div class="mlabel">From</div><div class="mval">${co.name}</div></div>`:''}
+    </div>
+  </div>
+  <div class="prop-gold-bar"></div>`;
+
+  // SECTIONS
+  p.sections.forEach(sec=>{
+    if(!sec.enabled) return;
+    if(sec.id==='about' && sec.fields.content){
+      html+=`<div class="prop-section"><div class="prop-section-tag">About</div><h2>About Us</h2><p>${nl2br(sec.fields.content)}</p></div>`;
+    }
+    if(sec.id==='services' && sec.fields.items?.length){
+      html+=`<div class="prop-section"><div class="prop-section-tag">Services</div><h2>Services Offered</h2><div class="services-list">${sec.fields.items.map(item=>`<div class="service-item"><div class="service-icon">${item.icon||'💼'}</div><div class="service-body"><div class="sb-title">${item.title||'Service'}</div><div class="sb-desc">${item.desc||''}</div></div></div>`).join('')}</div></div>`;
+    }
+    if(sec.id==='whyus' && sec.fields.items?.length){
+      html+=`<div class="prop-section"><div class="prop-section-tag">Why Us</div><h2>Why Choose Us</h2><div class="why-grid">${sec.fields.items.map(item=>`<div class="why-item"><div class="wi-title">${item.title||''}</div><div class="wi-desc">${item.desc||''}</div></div>`).join('')}</div></div>`;
+    }
+    if(sec.id==='scope' && sec.fields.items?.length){
+      html+=`<div class="prop-section"><div class="prop-section-tag">Scope</div><h2>Scope of Work</h2>${sec.fields.items.map((item,i)=>`<div class="scope-item"><div class="scope-num">${i+1}</div><div class="scope-text"><div class="st">${item.title||'Deliverable'}</div><div class="sd">${item.desc||''}</div></div></div>`).join('')}</div>`;
+    }
+    if(sec.id==='timeline' && sec.fields.items?.length){
+      html+=`<div class="prop-section"><div class="prop-section-tag">Timeline</div><h2>Project Timeline</h2><div class="timeline">${sec.fields.items.map(item=>`<div class="tl-item"><div class="tl-dot"></div><div class="tl-phase">${item.phase||'Phase'}</div><div class="tl-title">${item.milestone||''}</div><div class="tl-dur">${item.duration||''}</div></div>`).join('')}</div></div>`;
+    }
+    if(sec.id==='pricing' && sec.fields.rows?.length){
+      const cur=sec.fields.currency||'₹';
+      html+=`<div class="prop-section"><div class="prop-section-tag">Investment</div><h2>Pricing</h2><table class="price-table"><thead><tr><th>Description</th><th>Qty</th><th>Rate (${cur})</th><th>Amount (${cur})</th></tr></thead><tbody>${sec.fields.rows.map(r=>`<tr><td>${r.desc||''}</td><td>${r.qty||1}</td><td>${r.rate||0}</td><td>${r.total||0}</td></tr>`).join('')}</tbody><tfoot><tr class="price-total"><td colspan="3"><strong>Total Investment</strong></td><td><strong>${cur}${sec.fields.grandTotal||0}</strong></td></tr></tfoot></table></div>`;
+    }
+    if(sec.id==='terms'){
+      const content=sec.fields.content||company.terms||'';
+      if(content){
+        const lines=content.split('\n').filter(l=>l.trim());
+        html+=`<div class="prop-section"><div class="prop-section-tag">Terms</div><h2>Terms & Conditions</h2><ul class="terms-list">${lines.map(l=>`<li>${l}</li>`).join('')}</ul></div>`;
+      }
+    }
+    if(sec.id==='signature'){
+      html+=`<div class="prop-section"><div class="prop-section-tag">Authorisation</div><h2>Acceptance</h2><p style="margin-bottom:24px">By signing below, both parties agree to the terms and conditions outlined in this proposal.</p><div class="sig-area"><div class="sig-box"><div class="sig-label">For ${co.name||'[Company Name]'}</div><div class="sig-name">${co.person||'Authorised Signatory'}</div>${co.email?`<div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">${co.email}</div>`:''}</div><div class="sig-box"><div class="sig-label">For ${p.clientName||'[Client Name]'}</div><div class="sig-name">${p.clientContact||'Authorised Signatory'}</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:4px">Date: _______________</div></div></div></div>`;
+    }
+    if(sec.id==='custom'){
+      html+=`<div class="custom-section-wrap"><h2>${sec.fields.title||sec.name}</h2><p>${nl2br(sec.fields.content||'')}</p></div>`;
+    }
+  });
+
+  // FOOTER
+  html+=`<div style="background:var(--navy);padding:20px 70px;display:flex;justify-content:space-between;align-items:center">
+    <div style="color:rgba(255,255,255,0.45);font-size:12px;font-family:'Source Sans 3',sans-serif">${co.name||''} · ${co.phone||''} · ${co.email||''}</div>
+    <div style="color:var(--gold);font-size:12px;font-family:'Source Sans 3',sans-serif;font-weight:600">${p.number||''}</div>
+  </div>`;
+  html+=`</div>`;
+  document.getElementById('previewInner').innerHTML=html;
+}
+
+function nl2br(str){return (str||'').replace(/\n/g,'<br>')}
+
+// ============================================================
+// EXPORT PDF
+// ============================================================
+function exportPDF(){
+  if(!currentProposal){showToast('No proposal to export.');return;}
+  collectAll();
+  renderPreview();
+  showToast('Preparing PDF...');
+  setTimeout(()=>{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const p=currentProposal;
+    const co=company;
+    const cur=p.sections.find(s=>s.id==='pricing')?.fields?.currency||'Rs.';
+    const pageW=210,ml=18,mr=18,cw=pageW-ml-mr;
+    let y=0;
+    const navy=[74,14,31],gold=[201,168,76],white=[255,255,255],cream=[253,249,245];
+    const goldPale=[253,246,227],lightGray=[243,232,235],textMid=[90,42,53],textMuted=[154,122,130];
+
+    function newPage(){doc.addPage();y=0;}
+    function checkY(need){if(y+need>280)newPage();}
+    function setFont(style,size,color){
+      if(style==='serif'){doc.setFont('times',size>16?'bold':'normal');}
+      else{doc.setFont('helvetica',style==='bold'?'bold':style==='italic'?'italic':'normal');}
+      doc.setFontSize(size);
+      if(color)doc.setTextColor(...color);
+    }
+    function drawRect(x,ry,w,h,fill){doc.setFillColor(...fill);doc.rect(x,ry,w,h,'F');}
+
+    // COVER PAGE
+    drawRect(0,0,pageW,297,navy);
+    // Gold accent circle
+    doc.setFillColor(184,146,42); doc.setGState && doc.setGState(doc.GState({opacity:.08}));
+    doc.circle(175,20,50,'F');
+    doc.setGState && doc.setGState(doc.GState({opacity:1}));
+    // Tag
+    setFont('normal',8,[212,170,80]);
+    doc.text(`PROPOSAL  ·  ${p.number||''}`,ml,30);
+    // Title
+    setFont('serif',26,white);
+    const titleLines=doc.splitTextToSize(p.title||'Business Proposal',cw);
+    doc.text(titleLines,ml,46);
+    y=46+titleLines.length*10;
+    // Tagline
+    if(p.tagline){setFont('italic',11,[160,160,200]);doc.text(p.tagline,ml,y+8);y+=16;}
+    // Divider
+    doc.setDrawColor(...gold);doc.setLineWidth(.5);doc.line(ml,y+6,ml+40,y+6);y+=14;
+    // Prepared for
+    setFont('normal',9,[140,140,180]);doc.text('PREPARED FOR',ml,y+2);y+=8;
+    setFont('bold',16,[212,170,80]);doc.text(p.clientName||'Client Name',ml,y+2);y+=8;
+    if(p.clientContact){setFont('normal',10,[180,180,210]);doc.text(p.clientContact,ml,y+2);y+=8;}
+    // Meta
+    y+=16;
+    setFont('normal',8,[100,110,140]);doc.text('DATE',ml,y);doc.text('VALID UNTIL',ml+50,y);if(co.name)doc.text('FROM',ml+110,y);
+    y+=5;
+    setFont('normal',10,[220,220,240]);doc.text(formatDate(p.date)||'—',ml,y);doc.text(formatDate(p.validUntil)||'—',ml+50,y);if(co.name)doc.text(co.name,ml+110,y);
+    // Gold bar bottom
+    doc.setFillColor(...gold);doc.rect(0,290,pageW,7,'F');
+
+    // --- CONTENT PAGES ---
+    newPage();
+    p.sections.forEach(sec=>{
+      if(!sec.enabled) return;
+
+      function sectionHeader(tag,title){
+        checkY(22);
+        setFont('normal',7,gold);doc.text(tag.toUpperCase(),ml,y+6);
+        setFont('serif',16,navy);doc.text(title,ml,y+14);
+        doc.setDrawColor(...gold);doc.setLineWidth(.4);doc.line(ml,y+17,ml+cw,y+17);
+        y+=22;
+      }
+
+      if(sec.id==='about'&&sec.fields.content){
+        sectionHeader('About','About Us');
+        const lines=doc.splitTextToSize(sec.fields.content,cw);
+        setFont('normal',10,textMid);
+        lines.forEach(line=>{checkY(6);doc.text(line,ml,y);y+=5.5;});
+        y+=6;
+      }
+      if(sec.id==='services'&&sec.fields.items?.length){
+        sectionHeader('Services','Services Offered');
+        sec.fields.items.forEach(item=>{
+          checkY(16);
+          drawRect(ml,y-3,cw,14,cream);
+          doc.setDrawColor(...gold);doc.setLineWidth(.6);doc.line(ml,y-3,ml,y+11);
+          setFont('bold',11,navy);doc.text((item.title||'Service'),ml+5,y+4);
+          if(item.desc){setFont('normal',9,textMuted);doc.text(doc.splitTextToSize(item.desc,cw-10)[0],ml+5,y+9);}
+          y+=18;
+        });
+        y+=4;
+      }
+      if(sec.id==='whyus'&&sec.fields.items?.length){
+        sectionHeader('Why Us','Why Choose Us');
+        const half=(cw-6)/2;
+        sec.fields.items.forEach((item,i)=>{
+          if(i%2===0){checkY(20);}
+          const xOff=i%2===0?ml:ml+half+6;
+          if(i%2===0){
+            drawRect(xOff,y-3,half,18,goldPale);
+            doc.setDrawColor(...gold);doc.setLineWidth(.6);doc.line(xOff,y-3,xOff,y+15);
+          } else {
+            drawRect(xOff,y-21,half,18,goldPale);
+            doc.setDrawColor(...gold);doc.setLineWidth(.6);doc.line(xOff,y-21,xOff,y-3);
+          }
+          const ry=i%2===0?y:y-21;
+          setFont('bold',10,navy);doc.text(item.title||'',xOff+5,ry+5);
+          if(item.desc){setFont('normal',8.5,textMuted);const dl=doc.splitTextToSize(item.desc,half-10);doc.text(dl[0]||'',xOff+5,ry+11);}
+          if(i%2===1||i===sec.fields.items.length-1)y+=22;
+        });
+        y+=4;
+      }
+      if(sec.id==='scope'&&sec.fields.items?.length){
+        sectionHeader('Scope','Scope of Work');
+        sec.fields.items.forEach((item,i)=>{
+          checkY(16);
+          doc.setFillColor(...navy);doc.circle(ml+3.5,y+1,3.5,'F');
+          setFont('bold',9,white);doc.text(String(i+1),ml+3.5,y+2.5,{align:'center'});
+          setFont('bold',11,navy);doc.text(item.title||'Deliverable',ml+10,y+3);
+          if(item.desc){setFont('normal',9,textMuted);const dl=doc.splitTextToSize(item.desc,cw-12);doc.text(dl,ml+10,y+8);y+=dl.length*4.5;}
+          y+=12;
+        });
+        y+=4;
+      }
+      if(sec.id==='timeline'&&sec.fields.items?.length){
+        sectionHeader('Timeline','Project Timeline');
+        sec.fields.items.forEach((item,i)=>{
+          checkY(16);
+          doc.setFillColor(...gold);doc.circle(ml+3,y+2,3,'F');
+          if(i<sec.fields.items.length-1){doc.setDrawColor(...lightGray);doc.setLineWidth(.3);doc.line(ml+3,y+5,ml+3,y+18);}
+          if(item.phase){setFont('bold',7,gold);doc.text(item.phase.toUpperCase(),ml+10,y+1);}
+          setFont('bold',11,navy);doc.text(item.milestone||'',ml+10,y+6);
+          if(item.duration){setFont('normal',9,textMuted);doc.text(item.duration,ml+10,y+11);}
+          y+=16;
+        });
+        y+=6;
+      }
+      if(sec.id==='pricing'&&sec.fields.rows?.length){
+        sectionHeader('Investment','Pricing');
+        checkY(12);
+        const cols=[cw*.5,cw*.15,cw*.2,cw*.15];
+        const xs=[ml,ml+cols[0],ml+cols[0]+cols[1],ml+cols[0]+cols[1]+cols[2]];
+        drawRect(ml,y-3,cw,10,navy);
+        ['Description','Qty',`Rate (${cur==='₹'?'Rs.':cur})`,`Amount`].forEach((h,i)=>{setFont('bold',8,white);doc.text(h,xs[i]+2,y+3);});
+        y+=10;
+        sec.fields.rows.forEach((r,i)=>{
+          checkY(8);
+          if(i%2===0)drawRect(ml,y-2,cw,7,cream);
+          setFont('normal',9,textMid);
+          doc.text(doc.splitTextToSize(r.desc||'',cols[0]-4)[0],xs[0]+2,y+3);
+          doc.text(String(r.qty||1),xs[1]+2,y+3);
+          doc.text(String(r.rate||0),xs[2]+2,y+3);
+          setFont('bold',9,navy);doc.text(String(r.total||0),xs[3]+2,y+3);
+          y+=7;
+        });
+        checkY(10);
+        drawRect(ml,y,cw,10,goldPale);
+        doc.setDrawColor(...gold);doc.setLineWidth(.5);doc.line(ml,y,ml+cw,y);
+        setFont('bold',11,navy);doc.text('TOTAL',ml+2,y+7);
+        setFont('bold',12,navy);doc.text(`${cur==='₹'?'Rs.':cur}${sec.fields.grandTotal||0}`,xs[3]+2,y+7);
+        y+=14;
+      }
+      if(sec.id==='terms'){
+        const content=sec.fields.content||co.terms||'';
+        if(content){
+          sectionHeader('Terms','Terms & Conditions');
+          const lines=content.split('\n').filter(l=>l.trim());
+          lines.forEach(line=>{
+            checkY(8);
+            doc.setFillColor(...gold);doc.circle(ml+2,y+1,1.5,'F');
+            setFont('normal',9,textMid);const tl=doc.splitTextToSize(line,cw-8);doc.text(tl,ml+7,y+3);y+=tl.length*5+2;
+          });
+          y+=6;
+        }
+      }
+      if(sec.id==='signature'){
+        checkY(50);
+        sectionHeader('Authorisation','Acceptance & Signatures');
+        setFont('normal',10,textMid);doc.text('By signing below, both parties agree to the terms and conditions outlined in this proposal.',ml,y,{maxWidth:cw});y+=12;
+        const hw=(cw-16)/2;
+        // Left sig box
+        doc.setDrawColor(...navy);doc.setLineWidth(.4);doc.line(ml,y+28,ml+hw,y+28);
+        setFont('bold',8,textMuted);doc.text(`FOR ${(co.name||'[COMPANY NAME]').toUpperCase()}`,ml,y+34);
+        setFont('normal',10,navy);doc.text(co.person||'Authorised Signatory',ml,y+40);
+        if(co.email){setFont('normal',8,textMuted);doc.text(co.email,ml,y+46);}
+        // Right sig box
+        const rx=ml+hw+16;
+        doc.line(rx,y+28,rx+hw,y+28);
+        setFont('bold',8,textMuted);doc.text(`FOR ${(p.clientName||'[CLIENT NAME]').toUpperCase()}`,rx,y+34);
+        setFont('normal',10,navy);doc.text(p.clientContact||'Authorised Signatory',rx,y+40);
+        setFont('normal',8,textMuted);doc.text('Date: _______________',rx,y+46);
+        y+=54;
+      }
+      if(sec.id==='custom'&&sec.fields.content){
+        sectionHeader('Note',sec.fields.title||sec.name);
+        const lines=doc.splitTextToSize(sec.fields.content,cw);
+        setFont('normal',10,textMid);lines.forEach(line=>{checkY(6);doc.text(line,ml,y);y+=5.5;});
+        y+=6;
+      }
+    });
+
+    // Footer on each page
+    const total=doc.internal.getNumberOfPages();
+    for(let i=1;i<=total;i++){
+      doc.setPage(i);
+      doc.setFillColor(...navy);doc.rect(0,285,pageW,12,'F');
+      setFont('normal',7,[150,155,170]);
+      const fLeft=`${co.name||''} · ${co.phone||''} · ${co.email||''}`;
+      doc.text(fLeft,ml,292);
+      doc.text(`Page ${i} of ${total}`,pageW-mr,292,{align:'right'});
+      setFont('bold',7,gold);doc.text(p.number||'',pageW/2,292,{align:'center'});
+    }
+
+    doc.save(`${(p.title||'Proposal').replace(/\s+/g,'-')}.pdf`);
+    showToast('PDF downloaded!');
+  },300);
+}
+
+// ============================================================
+// COPY LINK
+// ============================================================
+function copyProposalLink(){
+  if(!currentProposal){showToast('No proposal loaded.');return;}
+  collectAll();
+  const data=btoa(encodeURIComponent(JSON.stringify({p:currentProposal,c:company})));
+  const url=`${location.href.split('?')[0]}?proposal=${data}`;
+  navigator.clipboard.writeText(url).then(()=>{showToast('Link copied to clipboard! Share with your client.');}).catch(()=>{showToast('Could not copy. Try again.');});
+}
+function loadFromURL(){
+  const params=new URLSearchParams(location.search);
+  const encoded=params.get('proposal');
+  if(!encoded) return;
+  try{
+    const {p,c}=JSON.parse(decodeURIComponent(atob(encoded)));
+    currentProposal=p;
+    if(c && !company.name) Object.assign(company,c);
+    showPage('preview');
+  }catch(e){console.warn('Could not load from URL');}
+}
+
+// ============================================================
+// CUSTOM SECTION
+// ============================================================
+function addCustomSection(){
+  collectAll();
+  currentProposal.sections.push({id:'custom',name:'Custom Section',enabled:true,fields:{title:'',content:''}});
+  buildSectionsUI(currentProposal.sections);
+  showToast('Custom section added!');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg,dur=2500){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadSettings();
+renderDashboard();
+loadFromURL();
+</script>
+</body>
+</html>
